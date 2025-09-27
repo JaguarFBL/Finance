@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion Argent de Poche</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #f7f7f7;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      padding: 20px;
+      background: #2563EB;
+      color: white;
+      text-align: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    
+    .section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .section-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .section-content {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease;
+    }
+    
+    .section-content.open {
+      max-height: 1000px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    th {
+      font-weight: 600;
+      color: #555;
+      background-color: #f9f9f9;
+    }
+    
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 15px 20px;
+    }
+    
+    .summary-card {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .summary-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    
+    .summary-card p {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .positive {
+      color: #22c55e;
+    }
+    
+    .negative {
+      color: #ef4444;
+    }
+    
+    .update-form {
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      background: #2563EB;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    .btn:hover {
+      background: #1d4ed8;
+    }
+    
+    .toggle-icon {
+      transition: transform 0.3s;
+    }
+    
+    .rotate {
+      transform: rotate(180deg);
+    }
+    
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 20px;
+      justify-content: center;
+    }
+    
+    .chart-wrapper {
+      width: 100%;
+      max-width: 350px;
+      padding: 15px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .chart-title {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    @media (max-width: 600px) {
+      .summary {
+        grid-template-columns: 1fr;
+      }
+      
+      .chart-wrapper {
+        max-width: 100%;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Gestion d'Argent de Poche</h1>
+  </div>
+  
+  <div class="summary">
+    <div class="summary-card">
+      <h3>Compte CMD</h3>
+      <p id="summary-cmd">40€</p>
+    </div>
+    <div class="summary-card">
+      <h3>Crypto</h3>
+      <p id="summary-crypto">100€</p>
+    </div>
+    <div class="summary-card">
+      <h3>Liquide</h3>
+      <p id="summary-liquide">30€</p>
+    </div>
+    <div class="summary-card">
+      <h3>Dette</h3>
+      <p id="summary-dette" class="negative">-65€</p>
+    </div>
+    <div class="summary-card" style="grid-column: span 2;">
+      <h3>Total Net</h3>
+      <p id="summary-total">105€</p>
+    </div>
+  </div>
+
+  <!-- Section pour les graphiques -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('charts')">
+      <h2>Graphiques</h2>
+      <span class="toggle-icon" id="toggle-charts">▼</span>
+    </div>
+    <div class="section-content" id="content-charts">
+      <div class="charts-container">
+        <div class="chart-wrapper">
+          <h3 class="chart-title">Répartition des actifs</h3>
+          <canvas id="pie-chart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <h3 class="chart-title">Détails des comptes</h3>
+          <canvas id="accounts-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('revenus')">
+      <h2>Revenus mensuels</h2>
+      <span class="toggle-icon" id="toggle-revenus">▼</span>
+    </div>
+    <div class="section-content" id="content-revenus">
+      <table>
+        <tr>
+          <th>Source</th>
+          <th>Montant</th>
+          <th>Total mensuel</th>
+        </tr>
+        <tr>
+          <td>Argent de poche</td>
+          <td class="positive">+30€</td>
+          <td class="positive">+30€</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('cmd')">
+      <h2>Compte CMD</h2>
+      <span class="toggle-icon" id="toggle-cmd">▼</span>
+    </div>
+    <div class="section-content" id="content-cmd">
+      <table>
+        <tr>
+          <th>Compte courant</th>
+          <th>Bourse</th>
+          <th>Épargne à 2,5%</th>
+        </tr>
+        <tr>
+          <td id="cmd-courant">40€</td>
+          <td id="cmd-bourse">0€</td>
+          <td id="cmd-epargne">0€</td>
+        </tr>
+      </table>
+      <p>Total: <span id="cmd-total">40€</span></p>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('debloc')">
+      <h2>Compte Débloc</h2>
+      <span class="toggle-icon" id="toggle-debloc">▼</span>
+    </div>
+    <div class="section-content" id="content-debloc">
+      <p>Pas encore ouvert</p>
+      <h3>Compte</h3>
+      <table>
+        <tr>
+          <th>Type</th>
+          <th>Montant</th>
+          <th>Total</th>
+        </tr>
+        <tr>
+          <td>Courant</td>
+          <td id="debloc-courant">0€</td>
+          <td>0€</td>
+        </tr>
+        <tr>
+          <td>Épargne</td>
+          <td id="debloc-epargne">0€</td>
+          <td>0€</td>
+        </tr>
+      </table>
+      
+      <h3>Crypto</h3>
+      <table>
+        <tr>
+          <th>Crypto/somme</th>
+          <th>Acheté à</th>
+          <th>Veux vendre à</th>
+          <th>Somme</th>
+        </tr>
+        <tr>
+          <td>Bitcoin</td>
+          <td>≈ 82 000€</td>
+          <td>150 000€</td>
+          <td id="crypto-bitcoin">100€</td>
+        </tr>
+        <tr>
+          <td>Ethereum</td>
+          <td>0€</td>
+          <td>0€</td>
+          <td id="crypto-ethereum">0€</td>
+        </tr>
+      </table>
+      <p>Total crypto: <span id="crypto-total">100€</span></p>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('liquide')">
+      <h2>Liquide</h2>
+      <span class="toggle-icon" id="toggle-liquide">▼</span>
+    </div>
+    <div class="section-content" id="content-liquide">
+      <table>
+        <tr>
+          <th>Écureuil</th>
+          <th>Téléphone</th>
+          <th>Total</th>
+        </tr>
+        <tr>
+          <td id="liquide-tirelire">≈ 20€</td>
+          <td id="liquide-telephone">10€</td>
+          <td id="liquide-total">30€</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('dette')">
+      <h2>Dette</h2>
+      <span class="toggle-icon" id="toggle-dette">▼</span>
+    </div>
+    <div class="section-content" id="content-dette">
+      <table>
+        <tr>
+          <th>Totale due</th>
+          <th>Rendu</th>
+          <th>Reste</th>
+        </tr>
+        <tr>
+          <td id="dette-totale">90€</td>
+          <td id="dette-rendue">25€</td>
+          <td id="dette-reste" class="negative">65€</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-header" onclick="toggleSection('update')">
+      <h2>Mettre à jour les valeurs</h2>
+      <span class="toggle-icon" id="toggle-update">▼</span>
+    </div>
+    <div class="section-content" id="content-update">
+      <div class="update-form">
+        <div class="form-group">
+          <label for="category">Catégorie:</label>
+          <select id="category" onchange="updateTypeOptions()">
+            <option value="cmd">Compte CMD</option>
+            <option value="debloc">Compte Débloc</option>
+            <option value="crypto">Crypto</option>
+            <option value="liquide">Liquide</option>
+            <option value="dette">Dette</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="type">Type:</label>
+          <select id="type"></select>
+        </div>
+        <div class="form-group">
+          <label for="value">Nouvelle valeur (€):</label>
+          <input type="number" id="value" min="0" step="0.01">
+        </div>
+        <button class="btn" onclick="updateValue()">Mettre à jour</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Données
+  let data = {
+    cmd: { courant: 40, bourse: 0, epargne: 0 },
+    debloc: { courant: 0, epargne: 0 },
+    crypto: { bitcoin: 100, ethereum: 0 },
+    liquide: { tirelire: 20, telephone: 10 },
+    dette: { totale: 90, rendue: 25 }
+  };
+  
+  // Créer les graphiques
+  let pieChart;
+  let accountsChart;
+  
+  // Ouvrir toutes les sections au démarrage
+  document.addEventListener('DOMContentLoaded', function() {
+    const sections = ['charts', 'revenus', 'cmd', 'debloc', 'liquide', 'dette', 'update'];
+    sections.forEach(section => {
+      document.getElementById('content-' + section).classList.add('open');
+    });
+    
+    // Initialiser les options de type
+    updateTypeOptions();
+    
+    // Mettre à jour l'affichage initial
+    updateDisplay();
+    
+    // Initialiser les graphiques
+    initCharts();
+  });
+  
+  // Fonction pour initialiser les graphiques
+  function initCharts() {
+    const pieCtx = document.getElementById('pie-chart').getContext('2d');
+    const accountsCtx = document.getElementById('accounts-chart').getContext('2d');
+    
+    // Créer le graphique camembert
+    pieChart = new Chart(pieCtx, {
+      type: 'pie',
+      data: {
+        labels: ['Compte CMD', 'Crypto', 'Liquide', 'Dette'],
+        datasets: [{
+          data: [40, 100, 30, 65],
+          backgroundColor: [
+            '#3b82f6',  // Bleu
+            '#f59e0b',  // Orange
+            '#10b981',  // Vert
+            '#ef4444',  // Rouge
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.raw + '€';
+                return label;
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Créer le graphique détaillé des comptes
+    accountsChart = new Chart(accountsCtx, {
+      type: 'bar',
+      data: {
+        labels: ['CMD Courant', 'Crypto Bitcoin', 'Liquide Tirelire', 'Liquide Téléphone'],
+        datasets: [{
+          label: 'Montant (€)',
+          data: [40, 100, 20, 10],
+          backgroundColor: [
+            '#3b82f6',
+            '#f59e0b',
+            '#10b981',
+            '#14b8a6'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value + '€';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Fonction pour basculer l'affichage des sections
+  function toggleSection(section) {
+    const content = document.getElementById('content-' + section);
+    const icon = document.getElementById('toggle-' + section);
+    
+    content.classList.toggle('open');
+    icon.classList.toggle('rotate');
+  }
+  
+  // Fonction pour mettre à jour les options de type
+  function updateTypeOptions() {
+    const category = document.getElementById('category').value;
+    const typeSelect = document.getElementById('type');
+    
+    // Vider les options existantes
+    typeSelect.innerHTML = '';
+    
+    // Ajouter les nouvelles options
+    let options = [];
+    
+    switch(category) {
+      case 'cmd':
+        options = [
+          { value: 'courant', text: 'Courant' },
+          { value: 'bourse', text: 'Bourse' },
+          { value: 'epargne', text: 'Épargne' }
+        ];
+        break;
+      case 'debloc':
+        options = [
+          { value: 'courant', text: 'Courant' },
+          { value: 'epargne', text: 'Épargne' }
+        ];
+        break;
+      case 'crypto':
+        options = [
+          { value: 'bitcoin', text: 'Bitcoin' },
+          { value: 'ethereum', text: 'Ethereum' }
+        ];
+        break;
+      case 'liquide':
+        options = [
+          { value: 'tirelire', text: 'Écureuil' },
+          { value: 'telephone', text: 'Téléphone' }
+        ];
+        break;
+      case 'dette':
+        options = [
+          { value: 'totale', text: 'Totale due' },
+          { value: 'rendue', text: 'Rendue' }
+        ];
+        break;
+    }
+    
+    // Ajouter les options au select
+    options.forEach(option => {
+      const optElement = document.createElement('option');
+      optElement.value = option.value;
+      optElement.textContent = option.text;
+      typeSelect.appendChild(optElement);
+    });
+  }
+  
+  // Fonction pour mettre à jour une valeur
+  function updateValue() {
+    const category = document.getElementById('category').value;
+    const type = document.getElementById('type').value;
+    const value = parseFloat(document.getElementById('value').value);
+    
+    if (isNaN(value)) {
+      alert('Veuillez entrer une valeur numérique valide.');
+      return;
+    }
+    
+    // Mettre à jour la donnée
+    data[category][type] = value;
+    
+    // Mettre à jour l'affichage
+    updateDisplay();
+    
+    // Réinitialiser le champ de valeur
+    document.getElementById('value').value = '';
+  }
+  
+  // Fonction pour calculer les totaux
+  function calculateTotals() {
+    const cmdTotal = data.cmd.courant + data.cmd.bourse + data.cmd.epargne;
+    const cryptoTotal = data.crypto.bitcoin + data.crypto.ethereum;
+    const liquideTotal = data.liquide.tirelire + data.liquide.telephone;
+    const detteRestante = data.dette.totale - data.dette.rendue;
+    
+    return {
+      cmd: cmdTotal,
+      crypto: cryptoTotal,
+      liquide: liquideTotal,
+      dette: detteRestante,
+      total: cmdTotal + cryptoTotal + liquideTotal - detteRestante
+    };
+  }
+  
+  // Fonction pour mettre à jour les graphiques
+  function updateCharts(totals) {
+    // Mettre à jour le graphique camembert
+    pieChart.data.datasets[0].data = [
+      Math.abs(totals.cmd),
+      Math.abs(totals.crypto),
+      Math.abs(totals.liquide),
+      Math.abs(totals.dette)
+    ];
+    pieChart.update();
+    
+    // Mettre à jour le graphique des comptes
+    accountsChart.data.datasets[0].data = [
+      data.cmd.courant,
+      data.crypto.bitcoin,
+      data.liquide.tirelire,
+      data.liquide.telephone
+    ];
+    accountsChart.update();
+  }
+  
+  // Fonction pour mettre à jour l'affichage
+  function updateDisplay() {
+    // Mettre à jour les valeurs individuelles
+    document.getElementById('cmd-courant').textContent = data.cmd.courant + '€';
+    document.getElementById('cmd-bourse').textContent = data.cmd.bourse + '€';
+    document.getElementById('cmd-epargne').textContent = data.cmd.epargne + '€';
+    
+    document.getElementById('debloc-courant').textContent = data.debloc.courant + '€';
+    document.getElementById('debloc-epargne').textContent = data.debloc.epargne + '€';
+    
+    document.getElementById('crypto-bitcoin').textContent = data.crypto.bitcoin + '€';
+    document.getElementById('crypto-ethereum').textContent = data.crypto.ethereum + '€';
+    
+    document.getElementById('liquide-tirelire').textContent = '≈ ' + data.liquide.tirelire + '€';
+    document.getElementById('liquide-telephone').textContent = data.liquide.telephone + '€';
+    
+    document.getElementById('dette-totale').textContent = data.dette.totale + '€';
+    document.getElementById('dette-rendue').textContent = data.dette.rendue + '€';
+    
+    // Calculer les totaux
+    const totals = calculateTotals();
+    
+    // Mettre à jour les totaux
+    document.getElementById('cmd-total').textContent = totals.cmd + '€';
+    document.getElementById('crypto-total').textContent = totals.crypto + '€';
+    document.getElementById('liquide-total').textContent = totals.liquide + '€';
+    document.getElementById('dette-reste').textContent = totals.dette + '€';
+    
+    // Mettre à jour le résumé
+    document.getElementById('summary-cmd').textContent = totals.cmd + '€';
+    document.getElementById('summary-crypto').textContent = totals.crypto + '€';
+    document.getElementById('summary-liquide').textContent = totals.liquide + '€';
+    document.getElementById('summary-dette').textContent = '-' + totals.dette + '€';
+    document.getElementById('summary-total').textContent = totals.total + '€';
+    
+    // Mettre à jour les graphiques
+    if (pieChart && accountsChart) {
+      updateCharts(totals);
+    }
+  }
+</script>
+
+</body>
+</html>
